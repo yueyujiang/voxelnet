@@ -45,7 +45,14 @@ class FeatureNet(object):
     def __init__(self, training, batch_size, name=''):
         super(FeatureNet, self).__init__()
         self.training = training
-
+        
+        # Add by Yueyu Jiang
+        with tf.variable_scope(name, reuse=tf.AUTO_REUSE) as scope:
+            self.dense = tf.layers.Dense(
+                128, tf.nn.relu, name='dense', _reuse=tf.AUTO_REUSE, _scope=scope)
+            self.batch_norm = tf.layers.BatchNormalization(
+                name='batch_norm', fused=True, _reuse=tf.AUTO_REUSE, _scope=scope)
+            
         # scalar
         self.batch_size = batch_size
         # [ΣK, 35/45, 7]
@@ -66,7 +73,10 @@ class FeatureNet(object):
             self.feature, axis=2, keep_dims=True), 0)
         x = self.vfe1.apply(self.feature, mask, self.training)
         x = self.vfe2.apply(x, mask, self.training)
-
+        
+        # Add by Yueyu Jiang
+        x = self.batch_norm.apply(self.dense.apply(x), training)
+        
         # [ΣK, 128]
         voxelwise = tf.reduce_max(x, axis=1)
 
